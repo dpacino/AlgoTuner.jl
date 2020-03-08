@@ -7,6 +7,7 @@ using Random
 rng = MersenneTwister(1234)
 
 @enum ParamType IntParam FloatParam
+@enum TunerVerbosity Silent IncumbentOnly ShowAll ShowDebug
 
 struct FuncParam
     pType::ParamType
@@ -88,8 +89,40 @@ function printParamValues(func::FuncCommand, values)
     println("   *")
 end
 
+function logIncumbent(timestamp,func::FuncCommand,cost,paramValues,verbosity::TunerVerbosity)
+    if verbosity>Silent
+        println("AlgoTuner($timestamp) - New incumbent with cost $cost")
+        printParamValues(func,paramValues)
+    end
+end
+
+function logBestIncumbent(timestamp,func::FuncCommand,cost,paramValues,verbosity::TunerVerbosity)
+    if verbosity>=Silent
+        println("AlgoTuner($timestamp) - Best incumbent with cost $cost")
+        printParamValues(func,paramValues)
+    end
+end
+
+function logStep(timestamp,func::FuncCommand,paramValues,verbosity::TunerVerbosity)
+    if verbosity>=ShowAll
+        println("AlgoTuner($timestamp) - Benchmarking with:")
+        printParamValues(func,paramValues)
+    end
+end
+
+function logDebug(timestamp, text, verbosity::TunerVerbosity)
+    if verbosity>=ShowDebug
+        println("AlgoTuner($timestamp) - $(text)")
+    end
+end
+
+function logText(timestamp, text)
+    println("AlgoTuner($timestamp) - $(text)")
+end
+
+
 # Expects that func retuns a cost an that the algorithm is minimizing
-function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64)
+function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64, verbosity::TunerVerbosity=ShowAll)
     T::Float64=1000
     α::Float64=0.99999999
     τ::Float64=0.01
@@ -97,6 +130,14 @@ function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64)
     t1::Float64=time_ns()
     elapsed_time::Float64=0.0
 
+    logText(elapsed_time,"----------------------------------------------------")
+    logText(elapsed_time,"                    AlgoTuner                       ")
+    logText(elapsed_time,"----------------------------------------------------")
+    logText(elapsed_time," Verbosity level: $(verbosity)")
+    logText(elapsed_time," Time limit: $(timeLimit)")
+    logText(elapsed_time," Testing: $(length(func.params)) parameters")
+    logText(elapsed_time,"        : $(length(instances)) instances")
+    logText(elapsed_time,"----------------------------------------------------")
     it = 1
     curParValues = deepcopy(func.param_init_vals)
     bestParValues = deepcopy(func.param_init_vals)
@@ -106,6 +147,7 @@ function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64)
         p,value = randomMoveOperator(func,curParValues)
         parValues = deepcopy(curParValues)
         parValues[p]=value
+        logStep(elapsed_time,func,parValues,verbosity)
         cost = execute(func,instances,parValues)
         if cost <= curCost
             curCost=cost
@@ -113,8 +155,7 @@ function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64)
             if curCost<bestCost
                 bestCost = curCost
                 bestParValues = deepcopy(curParValues)
-                println("AlgoTuner($elapsed_time) - New incumbent with cost $bestCost")
-                printParamValues(func,bestParValues)
+                logIncumbent(elapsed_time,func,bestCost,bestParValues, verbosity)
             end
         else
             prob=rand(rng)
@@ -132,8 +173,7 @@ function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64)
             break;
         end
     end
-    println("AlgoTuner($elapsed_time) - Best incumbent with cost $bestCost")
-    printParamValues(func,bestParValues)
+    logBestIncumbent(elapsed_time,func,bestCost,bestParValues, verbosity)
 end
 
 end # module
