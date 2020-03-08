@@ -97,7 +97,6 @@ function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64)
     t1::Float64=time_ns()
     elapsed_time::Float64=0.0
 
-    itTot = 1
     it = 1
     curParValues = deepcopy(func.param_init_vals)
     bestParValues = deepcopy(func.param_init_vals)
@@ -114,7 +113,7 @@ function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64)
             if curCost<bestCost
                 bestCost = curCost
                 bestParValues = deepcopy(curParValues)
-                println("($elapsed_time) - New incumbent with cost $bestCost")
+                println("AlgoTuner($elapsed_time) - New incumbent with cost $bestCost")
                 printParamValues(func,bestParValues)
             end
         else
@@ -127,16 +126,14 @@ function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64)
         end
         T=T*α
         it+=1
-        if it==10000
-            elapsed_time=(time_ns()-t1)/1.0e9
-            itTot+=10000
-            it=1
-            #println("Time: $(elapsed_time) - Cost: $(curCost) - T: $(T) - ",curParValues)
-            if elapsed_time>=timeLimit
-                break;
-            end
+        elapsed_time=(time_ns()-t1)/1.0e9
+        #println("Time: $(elapsed_time) - Cost: $(curCost) - T: $(T) - ",curParValues)
+        if elapsed_time>=timeLimit
+            break;
         end
     end
+    println("AlgoTuner($elapsed_time) - Best incumbent with cost $bestCost")
+    printParamValues(func,bestParValues)
 end
 
 end # module
