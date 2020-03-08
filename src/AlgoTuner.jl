@@ -27,11 +27,17 @@ function createRuntimeCommand(func::Function)
 end
 
 function addIntParam(func::FuncCommand, name::String, LB, UB)
+    if LB >= UB
+        error("LB should be smaller than UB")
+    end
     push!(func.params, FuncParam(IntParam,name,LB,UB))
     push!(func.param_init_vals, rand(rng,LB:UB))
 end
 
 function addFloatParam(func::FuncCommand, name::String, LB, UB)
+    if LB >= UB
+        error("LB should be smaller than UB")
+    end
     push!(func.params, FuncParam(FloatParam,name,LB,UB))
     push!(func.param_init_vals, LB+rand(rng)*(UB-LB))
 end
@@ -43,16 +49,20 @@ function addInitialValues(func::FuncCommand, values)
     func.param_init_vals = deepcopy(values)
 end
 
-function runCommand(func::FuncCommand, instance, values)
-    return Base.invokelatest(func.cmd, instance, values...)
+function runCommand(func::FuncCommand, seed, instance, values)
+    return Base.invokelatest(func.cmd, seed, instance, values...)
 end
 
 # PARAMETER TUNING FUNCTIONS
 
-function execute(func::FuncCommand, instances::Array{String,1}, paramValues)
+function execute(func::FuncCommand, instances::Array{String,1}, paramValues, sampleSize, seeds)
     cost = 0;
     for inst in instances
-        cost+=runCommand(func,inst,paramValues)
+        sampleCost=0
+        for s in 1:sampleSize
+            sampleCost+=runCommand(func,seeds[s],inst,paramValues)
+        end
+        cost+=(sampleCost/sampleSize)
     end
     cost/=length(instances)
     return cost;
@@ -96,6 +106,13 @@ function logIncumbent(timestamp,func::FuncCommand,cost,paramValues,verbosity::Tu
     end
 end
 
+function logInitIncumbent(timestamp,func::FuncCommand,cost,paramValues,verbosity::TunerVerbosity)
+    if verbosity>Silent
+        println("AlgoTuner($timestamp) - Start incumbent with cost $cost")
+        printParamValues(func,paramValues)
+    end
+end
+
 function logBestIncumbent(timestamp,func::FuncCommand,cost,paramValues,verbosity::TunerVerbosity)
     if verbosity>=Silent
         println("AlgoTuner($timestamp) - Best incumbent with cost $cost")
@@ -116,13 +133,34 @@ function logDebug(timestamp, text, verbosity::TunerVerbosity)
     end
 end
 
+function logDebug(text, verbosity::TunerVerbosity)
+    if verbosity>=ShowDebug
+        println("AlgoTuner(debug) - $(text)")
+    end
+end
+
 function logText(timestamp, text)
     println("AlgoTuner($timestamp) - $(text)")
 end
 
 
 # Expects that func retuns a cost an that the algorithm is minimizing
-function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64, verbosity::TunerVerbosity=ShowAll)
+function tune(func::FuncCommand, instances::Array{String,1},
+              timeLimit::Int64, sampleSize::Int64, seeds::Array{Int64,1}, verbosity::TunerVerbosity=ShowAll)
+
+    if length(instances)==0
+        error("At least one instance should be passed")
+    elseif sampleSize<=0
+        error("sampleSize should be positive and preferably between 1 and 10.")
+    elseif length(seeds)!=sampleSize
+        error("The numbre of seeds must match the sample size")
+    elseif timeLimit<=0
+        error("timeLimit must be a positive integer.")
+    elseif length(func.params)==0
+        error("at least one parameter must be added")
+    end
+
+
     T::Float64=1000
     α::Float64=0.99999999
     τ::Float64=0.01
@@ -135,20 +173,23 @@ function tune(func::FuncCommand, instances::Array{String,1}, timeLimit::Int64, v
     logText(elapsed_time,"----------------------------------------------------")
     logText(elapsed_time," Verbosity level: $(verbosity)")
     logText(elapsed_time," Time limit: $(timeLimit)")
+    logText(elapsed_time," Sample size: $(sampleSize)")
     logText(elapsed_time," Testing: $(length(func.params)) parameters")
     logText(elapsed_time,"        : $(length(instances)) instances")
     logText(elapsed_time,"----------------------------------------------------")
     it = 1
     curParValues = deepcopy(func.param_init_vals)
     bestParValues = deepcopy(func.param_init_vals)
-    curCost = execute(func,instances,curParValues)#add the initial values
+    curCost = execute(func,instances,curParValues,sampleSize,seeds)
     bestCost = curCost
+    logInitIncumbent(elapsed_time,func,bestCost,bestParValues, verbosity)
+
     while T>τ
         p,value = randomMoveOperator(func,curParValues)
         parValues = deepcopy(curParValues)
         parValues[p]=value
         logStep(elapsed_time,func,parValues,verbosity)
-        cost = execute(func,instances,parValues)
+        cost = execute(func,instances,parValues,sampleSize,seeds)
         if cost <= curCost
             curCost=cost
             curParValues = deepcopy(parValues)
