@@ -171,9 +171,9 @@ function tune(func::FuncCommand, instances::Array{String,1},
     t1::Float64=time_ns()
     elapsed_time::Float64=0.0
 
-    println(read("Project.toml", String))
+    #println(read("Project.toml", String))
 
-    ver="0.1.3"
+    #ver="0.1.3"
     logText(elapsed_time,"----------------------------------------------------")
     logText(elapsed_time,"                AlgoTuner")
     logText(elapsed_time,"----------------------------------------------------")
