@@ -77,7 +77,7 @@ function randomMoveOperator(func::FuncCommand, parVals)
     param = func.params[p]
     if rand(rng)>=0.5 #increase value
         if param.pType == IntParam
-            return (p,truct(Int64,rand(rng,parVals[p]:param.UB)))
+            return (p,trunc(Int64,rand(rng,parVals[p]:param.UB)))
         else
             return (p,parVals[p]+rand(rng)*(param.UB-parVals[p]))
         end
