@@ -14,6 +14,9 @@ struct FuncParam
     name::String
     LB::Float64
     UB::Float64
+    #values::Array{Float64,1}
+    #FuncParam(pType,name,LB,UB) = new FuncParam(pType,name,LB,UB,[])
+    #FuncParam(pType,name,values) = new FuncParam(pType,name,values[1],values[end],values)
 end
 
 mutable struct FuncCommand
@@ -74,13 +77,13 @@ function randomMoveOperator(func::FuncCommand, parVals)
     param = func.params[p]
     if rand(rng)>=0.5 #increase value
         if param.pType == IntParam
-            return (p,rand(rng,parVals[p]:param.UB))
+            return (p,truct(Int64,rand(rng,parVals[p]:param.UB)))
         else
             return (p,parVals[p]+rand(rng)*(param.UB-parVals[p]))
         end
     else # descrease value
         if param.pType == IntParam
-            v =rand(rng,param.LB:parVals[p])
+            v =trunc(Int64,rand(rng,param.LB:parVals[p]))
             #println(param.LB," ",parVals[p], " -> ",v)
             return (p,v)
         else
@@ -168,8 +171,11 @@ function tune(func::FuncCommand, instances::Array{String,1},
     t1::Float64=time_ns()
     elapsed_time::Float64=0.0
 
+    println(read("Project.toml", String))
+
+    ver="0.1.3"
     logText(elapsed_time,"----------------------------------------------------")
-    logText(elapsed_time,"                    AlgoTuner                       ")
+    logText(elapsed_time,"                AlgoTuner")
     logText(elapsed_time,"----------------------------------------------------")
     logText(elapsed_time," Verbosity level: $(verbosity)")
     logText(elapsed_time," Time limit: $(timeLimit)")
