@@ -1,6 +1,11 @@
 using Test
 using AlgoTuner
 using Pkg
+using Random
+
+
+include("TunerExample.jl")
+
 
 @testset "AlgoTuner tests" begin
     @testset "Parameter types" begin

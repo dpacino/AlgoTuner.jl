@@ -83,22 +83,22 @@ end
 
 function randomMoveOperator(func::FuncCommand, parVals)
     #select a parameter at random
-    p = rand(rng,1:length(func.params))
+    p = 3#rand(rng,1:length(func.params))
     param = func.params[p]
     if rand(rng)>=0.5 #increase value
-        if param.pType == IntParam
-            return (p,rand(rng,parVals[p]:trunc(Int64,param.UB)))
+        if typeof(param.UB) <: Integer
+            v =rand(rng,parVals[p]:param.UB)
+            return (p,v)
         else
-            return (p,parVals[p]+rand(rng)*(param.UB-parVals[p]))
+            v = parVals[p]+rand(rng)*(param.UB-parVals[p])
+            return (p,v)
         end
     else # descrease value
-        if param.pType == IntParam
-            v =rand(rng,trunc(Int64,param.LB):parVals[p])
-            #println(param.LB," ",parVals[p], " -> ",v)
+        if typeof(param.UB) <: Integer
+            v =rand(rng,param.LB:parVals[p])
             return (p,v)
         else
             v = param.LB+rand(rng)*(parVals[p]-param.LB)
-            #println(param.LB," ",parVals[p], " -> ",v)
             return (p,v)
         end
     end
@@ -196,6 +196,7 @@ function tune(func::FuncCommand, instances::Array{String,1},
     it = 1
     curParValues = deepcopy(func.param_init_vals)
     bestParValues = deepcopy(func.param_init_vals)
+    logStep(elapsed_time,func,bestParValues,verbosity)
     curCost = execute(func,instances,curParValues,sampleSize,seeds)
     bestCost = curCost
     logInitIncumbent(elapsed_time,func,bestCost,bestParValues, verbosity)
