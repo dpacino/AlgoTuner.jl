@@ -185,7 +185,7 @@ function tune(func::FuncCommand, instances::Array{String,1},
 
     #ver="0.1.3"
     logText(elapsed_time,"----------------------------------------------------")
-    logText(elapsed_time,"                AlgoTuner ver. ",version())
+    logText(elapsed_time,"                AlgoTuner ver. $(version())")
     logText(elapsed_time,"----------------------------------------------------")
     logText(elapsed_time," Verbosity level: $(verbosity)")
     logText(elapsed_time," Time limit: $(timeLimit)")
