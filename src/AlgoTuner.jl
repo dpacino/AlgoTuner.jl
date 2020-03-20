@@ -83,7 +83,7 @@ end
 
 function randomMoveOperator(func::FuncCommand, parVals)
     #select a parameter at random
-    p = 3#rand(rng,1:length(func.params))
+    p = rand(rng,1:length(func.params))
     param = func.params[p]
     if rand(rng)>=0.5 #increase value
         if typeof(param.UB) <: Integer

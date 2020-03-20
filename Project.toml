@@ -1,7 +1,7 @@
 name = "AlgoTuner"
 uuid = "8cb7e2b6-13f1-4b63-894c-76d49de64d4c"
 authors = ["Dario Pacino <darpa@dtu.dk>"]
-version = "0.1.9"
+version = "0.1.10"
 
 [deps]
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
