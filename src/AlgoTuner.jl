@@ -19,10 +19,11 @@ mutable struct FuncCommand
     cmd::Function
     params::Array{FuncParam,1}
     param_init_vals::Array{Number,1}
+    canEnumerate::Bool
 end
 
 function createRuntimeCommand(func::Function)
-    return FuncCommand(func,[],[])
+    return FuncCommand(func,[],[],true)
 end
 
 function addParam(::Type{T},func::FuncCommand, name::String, LB::T, UB::T) where {T<:Number}
@@ -33,6 +34,7 @@ function addParam(::Type{T},func::FuncCommand, name::String, LB::T, UB::T) where
     if typeof(LB)<:Integer
         push!(func.param_init_vals, rand(rng,LB:UB))
     else
+        func.canEnumerate=false
         push!(func.param_init_vals, LB+rand(rng)*(UB-LB))
     end
 end
@@ -156,6 +158,70 @@ function logText(timestamp, text)
     println("AlgoTuner($timestamp) - $(text)")
 end
 
+
+function enumerationTuning(func::FuncCommand, instances::Array{String,1},
+                           sampleSize::Int64, seeds::Array{Int64,1}, verbosity::TunerVerbosity=ShowAll)
+    if !func.canEnumerate
+        error("Enumeration is available only for integer parameters.")
+    end
+    if length(instances)==0
+        error("At least one instance should be passed")
+    elseif sampleSize<=0
+        error("sampleSize should be positive and preferably between 1 and 10.")
+    elseif length(seeds)!=sampleSize
+        error("The numbre of seeds must match the sample size")
+    elseif length(func.params)==0
+        error("at least one parameter must be added")
+    end
+
+
+    t1::Float64=time_ns()
+    elapsed_time::Float64=0.0
+
+    #println(read("Project.toml", String))
+
+    #ver="0.1.3"
+    logText(elapsed_time,"----------------------------------------------------")
+    logText(elapsed_time,"                AlgoTuner ver. $(version())")
+    logText(elapsed_time,"----------------------------------------------------")
+    logText(elapsed_time," Verbosity level: $(verbosity)")
+    logText(elapsed_time," Complete enumeration mode")
+    logText(elapsed_time," Sample size: $(sampleSize)")
+    logText(elapsed_time," Testing: $(length(func.params)) parameters")
+    logText(elapsed_time,"        : $(length(instances)) instances")
+    logText(elapsed_time,"----------------------------------------------------")
+
+    parValues = [p.LB for p in func.params]
+    bestValues = deepcopy(parValues)
+    bestCost = curCost = execute(func,instances,parValues,sampleSize,seeds)
+    bestCost,bestValues = do_enumerate!(func, 1,parValues, bestValues, bestCost, instances, sampleSize,seeds,t1,verbosity)
+    elapsed_time=(time_ns()-t1)/1.0e9
+    logBestIncumbent(elapsed_time,func,bestCost,bestValues, verbosity)
+
+    
+end
+
+function do_enumerate!(func::FuncCommand, pos, parValues, bestValues, bestCost,instances, sampleSize,seeds,t1,verbosity)
+    for i in func.params[pos].LB:func.params[pos].UB
+        parValues[pos] = i
+        if pos < length(parValues)
+            bestCost, bestValues = do_enumerate!(func,pos+1,parValues,bestValues, bestCost,instances, sampleSize,seeds,t1,verbosity)
+        else
+            elapsed_time=(time_ns()-t1)/1.0e9
+            logStep(elapsed_time,func,parValues,verbosity)
+            curCost = execute(func,instances,parValues,sampleSize,seeds)
+            
+            if curCost<bestCost
+                bestCost = curCost
+                bestValues = deepcopy(parValues)
+                elapsed_time=(time_ns()-t1)/1.0e9
+                logIncumbent(elapsed_time,func,bestCost,bestValues, verbosity)
+            end
+           
+        end
+    end
+    return bestCost, bestValues
+end
 
 # Expects that func retuns a cost an that the algorithm is minimizing
 function tune(func::FuncCommand, instances::Array{String,1},

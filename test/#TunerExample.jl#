@@ -30,3 +30,23 @@ AlgoTuner.addIntParam(cmd,"test",1,2)
 #AlgoTuner.addInitialValues(cmd,[300.0,0.9999,1])
 
 AlgoTuner.tune(cmd,benchmark,30,2,[1234,5432],AlgoTuner.ShowAll)
+
+
+
+
+TT = [10, 100, 1000]
+TA = [0.9, 0,99, 0,999]
+
+TSP_SA(seed, instance, T, alpha) =
+        (SA(instance,2,seed,TT[T],TA[alpha]) - bestKnown[instance])/bestKnown[instance]
+
+cmd = AlgoTuner.createRuntimeCommand(TSP_SA)
+
+AlgoTuner.addFloatParam(cmd,"T",1,3)
+AlgoTuner.addFloatParam(cmd,"alpha",1,3)
+
+
+AlgoTuner.tune(cmd,benchmark,30,2,[1234,5432],AlgoTuner.ShowAll)
+
+
+

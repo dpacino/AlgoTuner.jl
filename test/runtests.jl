@@ -28,14 +28,14 @@ include("TunerExample.jl")
     end
 
     @testset "Execution of client algorithm" begin
-        testF(seed,inst,a,b,c) = a+b*c
-        cmd = AlgoTuner.createRuntimeCommand(testF)
-        AlgoTuner.addIntParam(cmd,"a",1,3)
-        AlgoTuner.addIntParam(cmd,"b",1,3)
-        AlgoTuner.addFloatParam(cmd,"c",1,3)
+        testF1(seed,inst,a,b,c) = a+b*c
+        cmd1 = AlgoTuner.createRuntimeCommand(testF1)
+        AlgoTuner.addIntParam(cmd1,"a",1,3)
+        AlgoTuner.addIntParam(cmd1,"b",1,3)
+        AlgoTuner.addFloatParam(cmd1,"c",1,3)
 
-        @test AlgoTuner.runCommand(cmd,123,"test",[1,2,3]) == 7
-        @test AlgoTuner.runCommand(cmd,123,"test",[4,2,2]) == 8
+        @test AlgoTuner.runCommand(cmd1,123,"test",[1,2,3]) == 7
+        @test AlgoTuner.runCommand(cmd1,123,"test",[4,2,2]) == 8        
 
     end
 end
